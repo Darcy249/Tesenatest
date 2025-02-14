@@ -1,0 +1,63 @@
+import pytest
+import time
+import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# Directory for saving screenshots
+SCREENSHOT_DIR = "screenshots"
+os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+
+@pytest.fixture(scope="session")
+def driver():
+    """Initializes the WebDriver and ensures it runs only once"""
+    driver = webdriver.Chrome()
+    yield driver
+    driver.quit()
+
+def take_screenshot(driver, name):
+    """Saves a screenshot to the screenshots folder"""
+    filepath = os.path.join(SCREENSHOT_DIR, f"{name}.png")
+    driver.save_screenshot(filepath)
+    print(f"Screenshot uložen: {filepath}")
+
+def test_search_and_open_product(driver):
+    """Test searching and opening the product 'Blue Top'"""
+    wait = WebDriverWait(driver, 10)
+
+    print("Before opening the page")
+    driver.get("https://automationexercise.com/products")
+    print("Page opened:", driver.current_url)
+    take_screenshot(driver, "01_opened_page")
+
+    # Clicking the consent button (if it exists)
+    try:
+        consent_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Souhlas']")))
+        consent_button.click()
+        take_screenshot(driver, "02_consent_clicked")
+    except:
+        print("Consent not found.")
+
+    # Searching for the product "Blue Top"
+    search_box = wait.until(EC.presence_of_element_located((By.ID, "search_product")))
+    search_box.send_keys("Blue Top")
+    search_box.send_keys(Keys.RETURN)
+    take_screenshot(driver, "03_search_results")
+
+    # Clicking the "View Product" button
+    try:
+        product_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//i[contains(@class, 'fa-plus-square')]")))
+        product_link.click()
+        print("Clicked on 'View Product'")
+        take_screenshot(driver, "04_product_opened")
+    except:
+        print("Product not found or unable to click on it.")
+        take_screenshot(driver, "error_product_not_found")
+
+    # Verifying that we are on the product page
+    time.sleep(2)   # Wait for the page to redirect
+    print("After opening the product:", driver.current_url)
+    take_screenshot(driver, "05_final_page")
